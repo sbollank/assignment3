@@ -1,0 +1,120 @@
+import numpy as np
+
+import random
+
+from scipy.cluster.hierarchy import linkage, dendrogram
+
+import matplotlib.pyplot as plt
+
+if 'wv' not in globals():
+
+    import os
+
+    import gensim.downloader as api
+
+# Path to save/load the model
+
+    model_path = '/Users/okursun/uk/word2vec-google-news-300' #good for GDrive
+
+# Check if model exists in Google Drive
+
+    if not os.path.exists(model_path):
+
+        wv = api.load('word2vec-google-news-300')
+
+        wv.save(model_path)
+
+    else:
+
+        from gensim.models import KeyedVectors
+
+        wv = KeyedVectors.load(model_path)
+
+#%%
+
+terms_list = {
+
+'community': 'A group of people living in the same place or having a particular characteristic in common.',
+
+'laws': 'The system of rules which a particular country or community recognizes as regulating the actions of its members.',
+
+'conflict': 'A serious disagreement or argument.',
+
+'common good': 'The benefit or interests of all or most members of a community.',
+
+'government': 'The governing body of a nation, state, or community.',
+
+'governor': 'An official appointed to govern a state or region.',
+
+'equality': 'The state of being equal, especially in status, rights, or opportunities.',
+
+'fairness': 'The quality of making judgments that are free from discrimination.',
+
+'responsibility': 'The state or fact of having a duty to deal with something or of having control over someone.',
+
+'mayor': 'The elected head of a city, town, or other municipality.',
+
+'conflict resolution': 'The process of resolving a dispute or a conflict by meeting at least some of the needs of each side.'
+
+}
+
+# Get embeddings for terms if they exist in the model
+
+embeddings_list = {}
+
+for term in terms_list: 
+    try:
+          embeddings_list[term] = wv[term]
+    except KeyError:
+# Term not in Word2Vec vocabulary
+          embeddings_list[term] = None
+
+# Calculate cosine distances between embeddings
+
+valid_terms = [t for t in terms_list.keys() if embeddings_list[t] is not None]
+
+num_terms = len(valid_terms)
+
+cosine_distance_matrix = np.zeros((num_terms, num_terms))
+
+for i, term1 in enumerate(valid_terms):
+    for j, term2 in enumerate(valid_terms):
+        if i != j:
+            similarity = np.dot(embeddings_list[term1], embeddings_list[term2])
+            cosine_distance_matrix[i, j] = similarity
+
+linkage_matrix_single = linkage(cosine_distance_matrix, method='single')
+
+# Create a dendrogram for single linkage
+
+plt.figure(figsize=(10, 6))
+
+dendrogram(linkage_matrix_single, labels=valid_terms, orientation='top', distance_sort='descending', leaf_font_size=10)
+
+plt.title('Word Embedding Dendrogram (Single Linkage)')
+
+plt.xlabel('Words')
+
+plt.ylabel('Cosine Distance')
+
+plt.tight_layout()
+
+plt.show()
+
+linkage_matrix_complete = linkage(cosine_distance_matrix, method='complete')
+
+# Create a dendrogram for complete linkage
+
+plt.figure(figsize=(10, 6))
+
+dendrogram(linkage_matrix_complete, labels=valid_terms, orientation='top', distance_sort='descending', leaf_font_size=10)
+
+plt.title('Word Embedding Dendrogram (Complete Linkage)')
+
+plt.xlabel('Words')
+
+plt.ylabel('Cosine Distance')
+
+plt.tight_layout()
+
+plt.show()
